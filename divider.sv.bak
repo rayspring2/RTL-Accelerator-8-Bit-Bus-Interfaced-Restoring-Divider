@@ -1,0 +1,179 @@
+`timescale 1ns/1ns
+
+module decrementor(input [15:0]A, input [15:0] B, output [15:0] res);
+	assign res = A - B;
+endmodule
+
+module abs(input [15:0] A, output [15:0] res);
+    assign res = A[15] ? -A : A;
+endmodule
+
+module signmulti(input [15:0] A, input sign, output [15:0] res);
+	assign res = sign? -A: A;
+endmodule
+
+
+module shiftreg(input clk, input rst, input inz, input ld, input shiftl, input in, input [15:0] par_load, output reg [15:0] ans, output reg co);
+	always @(posedge clk or posedge rst) begin
+        if (rst)
+            ans <= 16'b0; 
+		else if(inz)
+			ans <= 16'b0;
+        else if (ld)
+            ans <= par_load;
+        else if (shiftl)
+            ans <= {ans[14:0], in};
+    end	
+	assign co = ans[15];
+endmodule
+
+module register(input clk, rst,en, input [15:0] A, output reg [15:0] Q);
+	always @(posedge clk, posedge rst) begin
+		if(rst)
+			Q <= 0;
+		else if(en)
+			Q <= A;
+		else
+			Q <= Q;
+			
+	end
+endmodule
+		
+module counter(input clk, rst, en, inz, output reg co);
+	reg [3:0] ans;
+	always @(posedge clk or posedge rst) begin
+		if (rst)
+			ans <= 0;
+		else if(inz)
+			ans <= 0;
+		else if(en)
+			ans <= ans + 1;
+		else begin
+			ans <= ans;
+		end
+	end	
+	assign co = &ans;		
+endmodule
+
+
+module divider(input clk,input rst, input start, input [15:0] A, input [15:0] B, output [15:0] R, output [15:0] Q, output reg ready);
+	
+	reg enA, enB;
+	wire [15:0] outA, outB;
+	
+	wire SNB_A, SNB_B;
+	register regA(clk, rst, enA, A, outA), 
+			 regB(clk, rst, enB, B, outB);
+	
+	assign SNB_A = outA[15];
+	assign SNB_B = outB[15];
+	
+	
+	
+	reg ldA, ld_dec;
+	reg ldR, ldQ, shR, shQ, coR, coQ, inzR, inzQ;
+	reg [15:0] parlQ, parlR;
+	reg [15:0] outR, outQ;
+	wire SB;
+	wire [15:0] outdecm;
+	
+	shiftreg Rreg(clk, rst, inzR, ldR, shR, coQ, parlR,  outR, coR),
+			 Qreg(clk, rst, inzQ, ldQ, shQ, ~SB, parlQ, outQ, coQ);
+	
+	wire [15:0] absA, absB;
+	abs abs_calcA(outA, absA),
+		abs_calcB(outB, absB);
+	
+	
+	wire [15:0] decIN;
+	assign decIN = {outR[14:0], outQ[15]};
+
+	decrementor decrementor(decIN, absB, outdecm);
+	
+	reg DECreg_en;
+	wire [15:0] outdec;
+	assign SB = outdec[15];
+	register DECreg(clk, rst, DECreg_en, outdecm, outdec);
+	assign parlQ = ldA? absA : ld_dec? {outdec[0], outQ[14:0]} : 16'b0;
+	assign parlR =  {outR[15], outdec[15:1]};
+	
+	signmulti signmultiQ(outQ, SNB_A ^ SNB_B, Q);
+	signmulti signmultiR(outR, SNB_A, R);
+	
+	
+	reg cntrINZ, cntrEN, cntrCO;
+	counter counter(clk, rst, cntrEN, cntrINZ, cntrCO );
+	
+	
+	typedef enum logic [2:0]{IDLE, STARTing, LOADing, SUBing, RELOADing, SHIFTing, ENDing} state;
+	state ps, ns;
+	 
+	 
+	always @(posedge clk, posedge rst) begin
+		if (rst)
+			ps <= IDLE;
+		else
+			ps <= ns;
+	end
+			
+	
+	always @(*) begin
+		ns = IDLE;
+		case(ps)
+			IDLE: if(start) ns <= STARTing;
+			STARTing : begin
+						if(B == 16'b0) ns <= IDLE;
+						else if(start) ns <= STARTing;
+						else ns <= LOADing;
+			end
+			
+			LOADing : ns <= SUBing;
+			SUBing : begin
+						if(outdecm[15]) ns <= SHIFTing;
+						else ns <= RELOADing;
+			end
+			
+			RELOADing: ns <= SHIFTing;
+			SHIFTing: begin
+						if(cntrCO) ns <= ENDing;
+						else ns <= SUBing;
+			end
+			ENDing: ns <= IDLE;
+		endcase
+	end
+	
+	always @(*) begin 
+		enA = 0; enB = 0; ldA = 0; ld_dec = 0;
+		ldR = 0; ldQ = 0; shR = 0; shQ = 0; cntrINZ = 0; cntrEN = 0;
+		inzR = 0; inzQ = 0; ready = 0;
+		DECreg_en = 0; startoutwrap = 0;
+		
+		case(ps)
+			IDLE : ready = 1;
+			STARTing : begin
+				enA = 1; enB = 1;
+			end
+			LOADing : begin
+				cntrINZ = 1; ldA = 1; inzR = 1; ldQ = 1;
+			end
+			SUBing:
+				DECreg_en = 1;  
+			RELOADing : begin
+				ldR = 1; ldQ = 1; ld_dec = 1;
+			end
+			SHIFTing : begin
+				shR = 1; shQ = 1; cntrEN = 1;
+			end
+			ENDing: begin
+				ready = 1; startoutwrap = 1;
+			end
+			
+		endcase
+	end
+		
+	
+endmodule
+
+
+
+

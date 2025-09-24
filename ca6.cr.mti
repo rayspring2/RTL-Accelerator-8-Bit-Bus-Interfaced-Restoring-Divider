@@ -1,0 +1,39 @@
+D:/ufb/dld/computer_assigments/CA6/wrapper.sv {2 {vlog -work work -sv -stats=none D:/ufb/dld/computer_assigments/CA6/wrapper.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 2020.1 Compiler 2020.02 Feb 28 2020
+-- Compiling module _8bitReg
+-- Compiling module _2bitCounter
+-- Compiling module _2to4Decoder
+-- Compiling module inwrapper
+-- Compiling module outwrapper
+** Warning: D:/ufb/dld/computer_assigments/CA6/wrapper.sv(109): (vlog-2697) MSB 31 of part-select into 'Q' is out of bounds.
+** Warning: D:/ufb/dld/computer_assigments/CA6/wrapper.sv(111): (vlog-2697) MSB 31 of part-select into 'R' is out of bounds.
+-- Compiling module divTop
+
+Top level modules:
+	divTop
+
+} {} {}} D:/ufb/dld/computer_assigments/CA6/divider.sv {1 {vlog -work work -sv -stats=none D:/ufb/dld/computer_assigments/CA6/divider.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 2020.1 Compiler 2020.02 Feb 28 2020
+-- Compiling module decrementor
+-- Compiling module abs
+-- Compiling module signmulti
+-- Compiling module shiftreg
+-- Compiling module register
+-- Compiling module counter
+-- Compiling module divider
+
+Top level modules:
+	divider
+
+} {} {}} D:/ufb/dld/computer_assigments/CA6/divider_tb.sv {1 {vlog -work work -sv -stats=none D:/ufb/dld/computer_assigments/CA6/divider_tb.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 2020.1 Compiler 2020.02 Feb 28 2020
+-- Compiling module tb_abs
+-- Compiling module shiftreg_tb
+-- Compiling module divider_tb
+
+Top level modules:
+	tb_abs
+	shiftreg_tb
+	divider_tb
+
+} {} {}}
